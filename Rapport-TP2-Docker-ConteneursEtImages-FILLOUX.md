@@ -272,3 +272,80 @@ Le tableau returned by `docker ps` ne contient aucune ligne. Les conteneurs cré
 
 #### Commentaire :
 Les deux formes visent la même opération. `docker ps` est la commande historique; `docker container ls` est la forme moderne sous la sous-commande `container`.
+
+---
+
+### 3.12 Liste des images avec `docker images`
+
+#### Commande(s) :
+- `docker images`
+- `docker image ls`
+
+#### Résultat(s) :
+```text
+IMAGE                ID             DISK USAGE   CONTENT SIZE   EXTRA
+hello-world:latest   11a3eb1597e8       25.9kB         9.49kB    U
+```
+Les deux commandes affichent la même image/table.  
+Image utilisée : `hello-world:latest`, ID `11a3eb1597e8`.
+
+#### Commentaire :
+`docker images` et `docker image ls` sont équivalentes. L’identifiant court affiché est `11a3eb1597e8` ; l’ID complet avait été vu à la Q3.8 (`sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`).
+
+---
+
+### 3.13 Réexécution de `hello-world` et comparaison
+
+#### Commande(s) :
+- `docker run hello-world`
+
+#### Résultat(s) :
+```text
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+
+To generate this message, Docker took the following steps:
+ 1. The Docker client contacted the Docker daemon.
+ 2. The Docker daemon pulled the "hello-world" image from the Docker Hub.
+    (amd64)
+ 3. The Docker daemon created a new container from that image which runs the
+    executable that produces the output you are currently reading.
+ 4. The Docker daemon streamed that output to the Docker client, which sent it
+    to your terminal.
+```
+
+#### Commentaire :
+La sortie reste la même, car ce texte fait partie du programme `hello-world`. Comparé à la première exécution, cette seconde tentative est en général beaucoup plus rapide, puisque l’image est déjà présente localement; Docker ne recrée pas de téléchargement. Chaque `docker run` crée toutefois un **nouveau conteneur**, et l’ancien reste conservé tant qu’on ne le supprime pas.
+
+---
+
+### 3.14 Nombre de conteneurs en cours / stockés
+
+#### Commande(s) :
+- `docker ps`
+- `docker ps -a`
+
+#### Résultat(s) :
+- `docker ps` : **0 conteneur en exécution** (tableau sans ligne active).
+- `docker ps -a` : **3 conteneurs stockés localement**, tous au statut `Exited (0)` :
+  - `0a5d6006e4c4` `hello-world` `/hello` → created 32s ago
+  - `9e4e86e6f3e8` `hello-world` `/hello` → created 19 min ago
+  - `657d8a16a2dc` `hello-world` `/hello` → created 20 min ago
+
+#### Commentaire :
+Les trois instances précédemment créées sont arrêtées mais restent stockées localement. Cela explique aussi pourquoi l’image `hello-world` ne peut pas être supprimée sans forcer : des conteneurs, même arrêtés, y sont encore associés.
+
+---
+
+### 3.15 Tentative de suppression de `hello-world`
+
+#### Commande(s) :
+- `docker rmi hello-world`
+
+#### Résultat(s) :
+`Error response from daemon: conflict: unable to delete hello-world:latest (must be forced) - container 0a5d6006e4c4 is using its referenced image 11a3eb1597e8`
+
+#### Commentaire :
+Docker **refuse** de supprimer l’image car au moins un conteneur (`0a5d6006e4c4`), même arrêté, y est encore associé. Il faut d’abord supprimer les conteneurs concernés avant de réessayer `docker rmi hello-world`. L’option `-f` n’est pas utilisée ici, conformément au sujet.
+
+---
