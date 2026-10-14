@@ -1,12 +1,12 @@
 # Rapport du TP2 de « cours en question »
 
-## Sommaire
-
-- Partie 2
+Note : version actuelle en Markdown. Une conversion en PDF via LaTeX est prévue.
 
 Environnement : VM `vmdocker`, utilisateur `dockeruser` (Docker installé via le dépôt apt).
 
----
+## Sommaire
+
+- Partie 2
 
 ## Partie 2 – Installation et démarrage de Docker
 
@@ -90,3 +90,4 @@ Il faut arrêter le socket en même temps que le service, sinon le socket peut r
 
 #### Commentaire :
 Après reconnexion, `dockeruser` appartient au groupe `docker` et peut utiliser l’API via `/var/run/docker.sock` sans `sudo`.
+
