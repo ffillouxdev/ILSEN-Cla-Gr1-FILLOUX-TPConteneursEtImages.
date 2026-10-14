@@ -349,3 +349,69 @@ Les trois instances précédemment créées sont arrêtées mais restent stocké
 Docker **refuse** de supprimer l’image car au moins un conteneur (`0a5d6006e4c4`), même arrêté, y est encore associé. Il faut d’abord supprimer les conteneurs concernés avant de réessayer `docker rmi hello-world`. L’option `-f` n’est pas utilisée ici, conformément au sujet.
 
 ---
+
+### 3.16 Noms des conteneurs
+
+#### Commande(s) :
+- `docker ps -a`
+
+#### Résultat(s) :
+Les trois conteneurs visibles dans la table ont les noms suivants :
+- `sweet_greider` (`0a5d6006e4c4`)
+- `eager_shannon` (`9e4e86e6f3e8`)
+- `magical_buck` (`657d8a16a2dc`)
+
+Tous sont de l’image `hello-world` avec le statut `Exited (0)`.
+
+#### Commentaire :
+Docker assigne automatiquement un nom aléatoire si on ne précise pas `--name`. Ces noms sont visibles dans la colonne `NAMES` et peuvent être utilisés directement dans des commandes comme `docker rm <nom>`.
+
+---
+
+### 3.17 Affichage non tronqué avec `--no-trunc`
+
+#### Commande(s) :
+- `docker ps -a --no-trunc`
+
+#### Résultat(s) :
+Les IDs complets deviennent visibles :
+- `0a5d6006e4c4143357e98dd1776bac8e54e30767ec8db38e6935cd824bb91105` → `sweet_greider`
+- `9e4e86e6f3e8f1cd444736a14ac6cda4cc26d4f72fee9403fc5b8eb117b4ca27` → `eager_shannon`
+- `657d8a16a2dc77937bf2ffd99d8b20b3138f002b1b8ad111aac6885c8f92368a` → `magical_buck`
+
+Tous concernent `hello-world`, au statut `Exited (0) About ... ago`.
+
+#### Commentaire :
+Par défaut, `docker ps` tronque les IDs et certaines commandes. L’option `--no-trunc` permet de retrouver l’ID complet, utile pour des scripts ou des suppressions précises.
+
+---
+
+### 3.18 Exécution puis suppression par nom
+
+#### Commande(s) :
+- `docker run hello-world`
+- `docker ps -l --format '{{.Names}}'`
+- `docker rm <nom_du_nouveau_conteneur>`
+
+#### Résultat(s) :
+- `docker run hello-world` crée et exécute un nouveau conteneur (avec la sortie habituelle `Hello from Docker!`).
+- Nom du dernier conteneur créé : `dazzling_shamir`.
+- Suppression réussie : `docker rm dazzling_shamir` affiche `dazzling_shamir`.
+
+#### Commentaire :
+Le conteneur vient d’être créé puis supprimé par son nom aléatoire. `docker ps -l` permet de récupérer facilement le dernier conteneur, et `docker rm` supprime uniquement le conteneur concerné (pas l’image).
+
+---
+
+### 3.19 Exécution par SHA256 avec nom de conteneur
+
+#### Commande(s) :
+- `docker run --name hello_sha sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`
+
+#### Résultat(s) :
+- Conteneur nommé `hello_sha`
+- Sortie habituelle `Hello from Docker!`
+- Étapes standard indiquées par l’image, comme pour les exécutions précédentes.
+
+#### Commentaire :
+L’image peut être référencée par son SHA256 complet et un nom de conteneur peut être attribué simultanément avec `--name`. Ce conteneur est également associé à l’image, donc il devra être supprimé avant de pouvoir supprimer l’image sans `--force`.
