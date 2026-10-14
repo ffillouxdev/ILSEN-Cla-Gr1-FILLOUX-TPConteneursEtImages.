@@ -201,3 +201,74 @@ Docker a téléchargé l’image `hello-world`, puis créé et exécuté le cont
 L’exécution de `hello-world` a créé un conteneur arrêté (plus le conteneur déjà présent localement de l’environnement initial pour la seconde entrée). La commande `docker ps -a` permet de confirmer leur rapport avec l’image `hello-world`.
 
 ---
+
+### 3.7 Contenu du répertoire des images
+
+#### Commande(s) :
+- `ls -la /var/lib/docker/image`
+- `ls -la /var/lib/docker/image/overlay2`
+
+#### Résultat(s) :
+- `/var/lib/docker/image` contient ici uniquement : `identity-cache.db` (`rw-------`).
+- `/var/lib/docker/image/overlay2` n’existe pas dans cet environnement : `No such file or directory`.
+
+#### Commentaire :
+Dans cette VM, le répertoire visible `/var/lib/docker/image` ne montre pas directement le répertoire habituel du storage driver (`overlay2`) ; il ne contient qu’un cache d’identité. Cela peut dépendre du moteur/de la configuration de stockage. Les métadonnées et couches de l’image restent interrogeables via Docker (`docker image inspect`, `docker images`) même si le chemin filesystem brut diffère de l’habitude.
+
+---
+
+### 3.8 SHA256 de l’image `hello-world`
+
+#### Commande(s) :
+- `docker images --no-trunc`
+
+#### Résultat(s) :
+- `hello-world   latest    sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa   6 months ago   25.9kB`
+- SHA256 complet de l’image : `sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`.
+
+#### Commentaire :
+La commande affiche l’ID long (non tronqué) de l’image locale `hello-world`. On peut ensuite le réutiliser comme identifiant exact pour lancer un conteneur avec :
+`docker run sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`.
+
+
+---
+
+### 3.9 Listing des conteneurs en exécution
+
+#### Commande(s) :
+- `docker ps`
+
+#### Résultat(s) :
+```text
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+Aucune ligne active : le tableau est vide et `docker ps` n'affiche que les conteneurs en cours d'exécution.
+
+#### Commentaire :
+Par défaut, `docker ps` masque les conteneurs arrêtés. Comme `hello-world` s’arrête immédiatement après l’affichage, il n’apparaît pas ici.
+
+---
+
+### 3.10 Nombre de conteneurs en exécution
+
+#### Commande(s) :
+- `docker ps`
+
+#### Résultat(s) :
+- **0 conteneur en cours d’exécution**.
+
+#### Commentaire :
+Le tableau returned by `docker ps` ne contient aucune ligne. Les conteneurs créés par `hello-world` sont donc arrêtés après leur exécution.
+
+---
+
+### 3.11 Alias de la commande
+
+#### Commande(s) :
+- `docker ps`
+
+#### Résultat(s) :
+- `docker ps` constitue un alias de `docker container ls` (équivalents officiels : `docker container list`, `docker container ps`, `docker ps`).
+
+#### Commentaire :
+Les deux formes visent la même opération. `docker ps` est la commande historique; `docker container ls` est la forme moderne sous la sous-commande `container`.
