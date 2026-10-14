@@ -198,4 +198,6 @@ Docker a téléchargé l’image `hello-world`, puis créé et exécuté le cont
 - Total : `2` conteneurs enregistrés localement.
 
 #### Commentaire :
-L’exécution de `hello-world` a créé un conteneur arrêté (plus le conteneur déjà présent localement de l’environnement initial pour la seconde entrée). La commande `docker ps -a` permettra de confirmer leur rapport avec l’image `hello-world`.
+L’exécution de `hello-world` a créé un conteneur arrêté (plus le conteneur déjà présent localement de l’environnement initial pour la seconde entrée). La commande `docker ps -a` permet de confirmer leur rapport avec l’image `hello-world`.
+
+---
