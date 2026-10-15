@@ -886,3 +886,85 @@ Cela évite aussi de subir automatiquement le changement de `latest` lors du pas
 #### Commentaire :
 Les deux images sont construites différemment : `noble` (24.04) part d’un Dockerfile classique (`ARG`, `LABEL`, `ADD`, `CMD`), tandis que `latest` (26.04) est construite avec **Rockcraft/umoci** (`umoci raw add-layer`, `umoci config`). Elles diffèrent donc **dès la première couche** : la couche de base (rootfs) n’a ni le même contenu ni la même taille, et les couches de configuration suivantes sont également propres à chaque version. Aucune couche commune n’apparaît entre ces deux images amd64.
 
+---
+
+### 4.9 Répertoire `layerdb` des couches d’images
+
+#### Commande(s) :
+- `sudo ls -la /var/lib/docker/image/overlay2/layerdb/sha256`
+- `sudo ls -la /var/lib/docker/image`
+- `sudo find /var/lib/docker -maxdepth 5 -type d -name 'sha256'`
+- `sudo ls -la /var/lib/containerd`
+- `sudo ls -la /var/lib/containerd/io.containerd.snapshotter.v1.overlayfs`
+- `sudo find /var/lib/containerd -maxdepth 5 -type d -name 'sha256'`
+
+#### Résultat(s) :
+- Le chemin demandé n’existe pas :
+  ```text
+  ls: cannot access '/var/lib/docker/image/overlay2/layerdb/sha256': No such file or directory
+  ```
+- `/var/lib/docker/image` ne contient qu’un cache :
+  ```text
+  total 32
+  drwx------  2 root root  4096 oct.  14 09:02 .
+  drwx--x--- 12 root root  4096 oct.  15 08:16 ..
+  -rw-------  1 root root 32768 oct.  15 08:46 identity-cache.db
+  ```
+- `find` ne trouve aucun répertoire `sha256` sous `/var/lib/docker`.
+- Sous `/var/lib/containerd`, on trouve bien les stockages containerd :
+  ```text
+  io.containerd.content.v1.content
+  io.containerd.snapshotter.v1.overlayfs
+  ...
+  ```
+  et le contenu adressable :
+  ```text
+  /var/lib/containerd/io.containerd.content.v1.content/blobs/sha256
+  ```
+
+#### Commentaire :
+Le répertoire `overlay2/layerdb/sha256` correspond au driver de stockage historique `overlay2`. Dans cette VM, Docker utilise le driver `overlayfs` via le **snapshotter containerd** (`driver-type: io.containerd.snapshotter.v1`), ce qui explique l’absence de ce chemin. Les couches et blobs sont alors gérés par containerd : le contenu adressable se trouve dans `/var/lib/containerd/io.containerd.content.v1.content/blobs/sha256`, et les snapshots dans `/var/lib/containerd/io.containerd.snapshotter.v1.overlayfs/`.
+
+---
+
+### 4.10 Téléchargement de l’image `ubuntu` par défaut
+
+#### Commande(s) :
+- `docker pull ubuntu`
+
+#### Résultat(s) :
+```text
+Using default tag: latest
+latest: Pulling from library/ubuntu
+06ad70e463aa: Pull complete
+4e07a0f12b2c: Pull complete
+8f70d2bfe91a: Download complete
+Digest: sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7
+Status: Downloaded newer image for ubuntu:latest
+docker.io/library/ubuntu:latest
+```
+
+#### Commentaire :
+Sans tag précisé, Docker utilise le tag `latest`. Au moment de la consultation, `ubuntu:latest` pointe vers **Ubuntu 26.04 LTS « resolute »** (digest `sha256:f144425…759f7`), ce qui correspond à ce qui avait été identifié en Q4.4.
+
+---
+
+### 4.11 Téléchargement de la version la plus récente (`26.10`)
+
+#### Commande(s) :
+- `docker pull ubuntu:26.10`
+
+#### Résultat(s) :
+```text
+26.10: Pulling from library/ubuntu
+d4a7338d7947: Pull complete
+ae58d958c2ee: Pull complete
+6582b5695784: Download complete
+Digest: sha256:ee126c2fa0249079a7e24ae3a3d29b04783ef93ab33c868751c9a1289d3fffff
+Status: Downloaded newer image for ubuntu:26.10
+docker.io/library/ubuntu:26.10
+```
+
+#### Commentaire :
+Le tag `26.10` correspond à **Ubuntu 26.10 « stonking »**, la version la plus récente. Son digest (`sha256:ee126c…fffff`) est différent de celui de `latest`, ce qui confirme qu’il s’agit bien de deux images distinctes.
+
