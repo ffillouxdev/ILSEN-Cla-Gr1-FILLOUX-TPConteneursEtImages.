@@ -7,6 +7,8 @@ Environnement : VM `vmdocker`, utilisateur `dockeruser` (Docker installé via le
 ## Sommaire
 
 - Partie 2
+- Partie 3
+- Partie 4
 
 ## Partie 2 – Installation et démarrage de Docker
 
@@ -702,4 +704,67 @@ f435cc31db33   hello-world   "/hello"   36 seconds ago   Exited (0) 35 seconds a
 
 #### Commentaire :
 L’option `--rm` demande à Docker de supprimer automatiquement le conteneur dès qu’il s’arrête. Le conteneur `hello4` exécute donc bien le programme `hello-world`, mais il disparaît aussitôt après : il n’apparaît pas dans `docker ps -a`, contrairement aux conteneurs `hello1`, `hello2` et `hello3` conservés. C’est la façon de faire pour un conteneur « jetable », dont on ne veut garder aucune trace locale.
+
+---
+
+## Partie 4 – DockerHub
+
+### 4.1 Types d’images sur Docker Hub
+
+#### Commande(s) :
+- Consultation du registre public : `https://hub.docker.com/`
+
+#### Résultat(s) :
+Docker Hub distingue principalement cinq catégories d’images, matérialisées par des badges de confiance :
+
+1. **Docker Official Images** — images officielles, maintenues par Docker et les éditeurs concernés, publiées dans l’espace `library/` (ex. `ubuntu`, `nginx`).
+2. **Docker Verified Publisher (DVP)** — images d’éditeurs commerciaux vérifiés par Docker.
+3. **Docker Sponsored OSS (DSOS)** — images de projets open source sponsorisés par Docker.
+4. **Docker Hardened Images (DHI)** — images durcies, minimales, orientées sécurité et entreprise.
+5. **Images communautaires** — images publiées par n’importe quel utilisateur ou organisation, sans badge de confiance Docker.
+
+À cela s’ajoutent des classifications secondaires pour naviguer : type de contenu (image, modèle IA, Helm chart, sandbox), catégorie fonctionnelle (Operating Systems, Languages & Frameworks, Databases, etc.) et architecture (amd64, arm64, etc.).
+
+#### Commentaire :
+La classification principale repose donc sur le **niveau de confiance et le mode de publication** de l’image (officielle, éditeur vérifié, open source sponsorisé, durcie, ou communautaire).
+
+---
+
+### 4.2 Image officielle de l’OS Ubuntu
+
+#### Commande(s) :
+- Consultation de la page officielle : `https://hub.docker.com/_/ubuntu`
+- Récupération locale possible : `docker pull ubuntu`
+
+#### Résultat(s) :
+- Dépôt officiel : **https://hub.docker.com/_/ubuntu**
+- Nom de l’image : `ubuntu` (namespace officiel `library/ubuntu`)
+- Badge : **Docker Official Image**
+- Mainteneur : **Canonical**
+- Récupération : `docker pull ubuntu`
+- Tags principaux visibles : `24.04` (`noble`), `26.04` (`resolute`, associé à `latest` et `rolling`), `26.10` (`stonking`), etc.
+
+#### Commentaire :
+L’image `ubuntu` est une image officielle maintenue par Canonical ; elle sert de base minimale pour de nombreux conteneurs et est disponible pour plusieurs architectures (`amd64`, `arm64`, `ppc64le`, `s390x`, etc.).
+
+---
+
+### 4.3 Versions proposées et distinction par tags
+
+#### Commande(s) :
+- Consultation de la liste des tags : `https://hub.docker.com/_/ubuntu/tags`
+
+#### Résultat(s) :
+Les versions sont distinguées par leur **tag**, qui sert d’étiquette/alias vers une image donnée :
+
+- **Versions par numéro de release** : `22.04`, `24.04`, `26.04`, `26.10`, etc.
+- **Versions par nom de code** : `jammy` (22.04), `noble` (24.04), `resolute` (26.04), `stonking` (26.10), etc.
+- **Tags datés / figés** : `jammy-20260924.1`, `noble-20260917`, `resolute-20260927`, utiles pour la reproductibilité.
+- **Alias mobiles** :
+  - `latest` → pointe vers la dernière **LTS** (ici Ubuntu 26.04 « resolute »).
+  - `rolling` → pointe vers la dernière release publiée, LTS ou non.
+  - `devel` → pointe vers la version en développement (ici 26.10 « stonking »).
+
+#### Commentaire :
+Le nom du tag permet donc de choisir une version précise ou de suivre une version mobile. Plusieurs tags peuvent néanmoins pointer vers le **même digest** d’image (par exemple `26.04`, `resolute`, `latest` et `rolling`).
 
