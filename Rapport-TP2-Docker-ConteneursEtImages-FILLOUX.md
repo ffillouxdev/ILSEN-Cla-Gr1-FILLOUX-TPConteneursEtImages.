@@ -624,3 +624,57 @@ CONTAINER ID   IMAGE         COMMAND    CREATED          STATUS                 
 #### Commentaire :
 `docker start hello2` démarre le conteneur sans attacher son terminal : la commande n’affiche donc que le nom `hello2`, et non la sortie du programme `/hello`. Juste après, le conteneur apparaît en cours d’exécution (`Up Less than a second`). Comme le programme `hello-world` se termine immédiatement, le statut repasse ensuite en `Exited (0)`. Pour voir directement le message, il faudra utiliser l’option d’attachement (Q3.29).
 
+---
+
+### 3.29 Démarrage de `hello2` avec attachement
+
+#### Commande(s) :
+- `docker start -a hello2`
+
+#### Résultat(s) :
+```text
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...
+```
+
+#### Commentaire :
+L’option `-a` (`--attach`) attache la sortie standard (et l’entrée standard) du conteneur au terminal courant. Contrairement à `docker start hello2` qui n’affichait que le nom, on voit donc ici la sortie du programme `/hello` défiler directement.
+
+---
+
+### 3.30 Démarrage de `hello1` avec attachement
+
+#### Commande(s) :
+- `docker start -a hello1`
+
+#### Résultat(s) :
+```text
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...
+```
+
+#### Commentaire :
+La même option `-a` fonctionne sur n’importe quel conteneur arrêté, référencé par son nom (`hello1` ici). Le message `Hello from Docker!` est de nouveau affiché en direct dans le terminal, ce qui confirme l’attachement de la sortie standard.
+
+---
+
+### 3.31 Exécution en arrière-plan avec `-d`
+
+#### Commande(s) :
+- `docker run -d --name hello3 hello-world`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+f435cc31db3392e1cfe3994fe0b2ead09e7b3817fcfd69be2b148e8f9560079d
+CONTAINER ID   IMAGE         COMMAND    CREATED                  STATUS                     PORTS     NAMES
+f435cc31db33   hello-world   "/hello"   Less than a second ago   Up Less than a second                hello3
+4df9754d5ba0   hello-world   "/hello"   7 minutes ago            Exited (0) 2 minutes ago             hello2
+08a04dd7c691   hello-world   "/hello"   14 minutes ago           Exited (0) 2 minutes ago             hello1
+```
+
+#### Commentaire :
+L’option `-d` (`--detach`) exécute le conteneur en arrière-plan : la sortie standard du programme n’est pas attachée au terminal, et `docker run` n’affiche donc que l’ID du conteneur créé. `docker ps -a` montre ensuite `hello3`, d’abord en cours d’exécution (`Up Less than a second`) puis, très rapidement, en `Exited (0)` puisque le programme `/hello` se termine immédiatement.
+
