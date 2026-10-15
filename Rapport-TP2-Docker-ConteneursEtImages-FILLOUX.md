@@ -834,3 +834,55 @@ Dans le cas observé :
 #### Commentaire :
 La classification repose donc principalement sur la **sévérité CVSS**, avec un tri décroissant. Des filtres permettent en plus de n’afficher que les vulnérabilités corrigeables ou d’exclure certaines catégories.
 
+---
+
+### 4.7 Comparaison de `latest` et `noble`
+
+#### Commande(s) :
+- Consultation des tags : `https://hub.docker.com/_/ubuntu/tags`
+- Comparaison des deux images via Docker Hub (onglets Vulnérabilités et Layers)
+
+#### Résultat(s) :
+- `latest` → Ubuntu **26.04 LTS « resolute »** (la dernière LTS)
+- `noble` → Ubuntu **24.04 LTS « noble »**
+- Les deux sont des versions **LTS**, supportées 5 ans, mais `noble` est une LTS plus ancienne et `latest` suit la LTS courante.
+- Vulnérabilités au moment de la consultation :
+  - `latest` (26.04) : 13 (2 Critical, 8 High, 3 Unknown)
+  - `noble` (24.04) : 21 (0 Critical, 1 High, 13 Medium, 7 Low)
+- Taille de la couche de base amd64 : 26.04 ≈ 41,84 Mo ; 24.04 ≈ 29,76 Mo.
+
+#### Commentaire :
+L’intérêt est de laisser le choix entre :
+- **`latest`** : rester sur la LTS la plus récente, avec des paquets plus modernes ;
+- **`noble`** : figer une LTS plus ancienne, plus mature et déjà validée par l’écosystème, tout en bénéficiant encore du support long.
+
+Cela évite aussi de subir automatiquement le changement de `latest` lors du passage à la LTS suivante : un tag comme `noble` reste attaché à la version 24.04.
+
+---
+
+### 4.8 Comparaison des couches de `latest` et `noble`
+
+#### Commande(s) :
+- Consultation des couches via Docker Hub :
+  - `https://hub.docker.com/layers/library/ubuntu/latest/images/sha256-88a381d5b5eeb2b35d3ad70925a362c37ce569daf43ede89ff818ec20e4d3794?tab=layers`
+  - `https://hub.docker.com/layers/library/ubuntu/noble/images/sha256-f610ab94648195aa356059f5b41d6085c9d4d903c072430cdd1af7bdb646106b?tab=layers`
+
+#### Résultat(s) :
+- `ubuntu:latest` (26.04) — **7 couches** :
+  1. `umoci raw add-layer ... --tag 26.04` → **41,84 Mo** (couche de base)
+  2. `umoci config ...` (clear entrypoint/cmd) → 0 B
+  3. `umoci config ... --config.cmd /bin/bash` → 0 B
+  4. `umoci config ... --config.env PATH=...` → 0 B
+  5. `umoci config ... --config.label ... version=26.04` → 0 B
+  6. `umoci config ... --manifest.annotation ...` → 0 B
+  7. `umoci raw add-layer ... .temp_layer.control_data.tar` → 388 B
+- `ubuntu:noble` (24.04) — **5 couches** :
+  1. `ARG RELEASE` → 0 B
+  2. `ARG LAUNCHPAD_BUILD_ARCH` → 0 B
+  3. `LABEL org.opencontainers.image.version=24.04` → 0 B
+  4. `ADD file:6c214... in /` → **29,76 Mo** (couche de base)
+  5. `CMD ["/bin/bash"]` → 0 B
+
+#### Commentaire :
+Les deux images sont construites différemment : `noble` (24.04) part d’un Dockerfile classique (`ARG`, `LABEL`, `ADD`, `CMD`), tandis que `latest` (26.04) est construite avec **Rockcraft/umoci** (`umoci raw add-layer`, `umoci config`). Elles diffèrent donc **dès la première couche** : la couche de base (rootfs) n’a ni le même contenu ni la même taille, et les couches de configuration suivantes sont également propres à chaque version. Aucune couche commune n’apparaît entre ces deux images amd64.
+
