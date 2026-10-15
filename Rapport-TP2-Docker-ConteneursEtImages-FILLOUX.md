@@ -768,3 +768,69 @@ Les versions sont distinguées par leur **tag**, qui sert d’étiquette/alias v
 #### Commentaire :
 Le nom du tag permet donc de choisir une version précise ou de suivre une version mobile. Plusieurs tags peuvent néanmoins pointer vers le **même digest** d’image (par exemple `26.04`, `resolute`, `latest` et `rolling`).
 
+---
+
+### 4.4 Version la plus récente et version `latest`
+
+#### Commande(s) :
+- Consultation des tags : `https://hub.docker.com/_/ubuntu/tags`
+
+#### Résultat(s) :
+- **Version la plus récente** : **Ubuntu 26.10 « stonking »**
+  - Tag : `26.10` (également `stonking`, `devel` actuellement)
+  - Digest/ID : `sha256:ee126c2fa0249079a7e24ae3a3d29b04783ef93ab33c868751c9a1289d3fffff`
+- **Version pointée par `latest`** : **Ubuntu 26.04 LTS « resolute »**
+  - Tags : `26.04`, `resolute`, `latest` (et `rolling` au moment de la consultation)
+  - Digest/ID : `sha256:f144425ff09be612d6d9ad965196e9cdc23dae1f42110a8a11a3e9a8198759f7`
+
+#### Commentaire :
+Le tag `latest` ne pointe donc pas vers la version la plus récente, mais vers la dernière **LTS** (ici Ubuntu 26.04 « resolute »), choisie pour sa stabilité et son support long. La version la plus récente (26.10 « stonking ») est une version **intermédiaire**, publiée plus fréquemment mais supportée moins longtemps. Les deux versions ont des digests différents.
+
+---
+
+### 4.5 Vulnérabilités de la version la plus récente et de `latest`
+
+#### Commande(s) :
+- Consultation de l’onglet **Vulnerabilities** sur Docker Hub :
+  - `https://hub.docker.com/layers/library/ubuntu/latest/images/sha256-88a381d5b5eeb2b35d3ad70925a362c37ce569daf43ede89ff818ec20e4d3794?tab=vulnerabilities`
+  - `https://hub.docker.com/layers/library/ubuntu/26.10/images/sha256-b18403eb2d06baad26fe088450af83744e456d0e7c46d8319d460ce3a39e1f16?tab=vulnerabilities`
+
+#### Résultat(s) :
+Les deux versions analysées présentent le même total de **13 vulnérabilités** :
+
+| Version | Total | Critical | High | Medium | Low | Unknown |
+|---|---:|---:|---:|---:|---:|---:|
+| `latest` (26.04) | 13 | 2 | 8 | 0 | 0 | 3 |
+| `26.10` | 13 | 2 | 8 | 0 | 0 | 3 |
+
+Détail des vulnérabilités :
+- **Critical** : `CVE-2026-56857` (CVSS 9.8), `CVE-2026-78663` (9.1)
+- **High** : `CVE-2026-94440`, `CVE-2026-78669`, `CVE-2026-78659`, `CVE-2026-78667`, `CVE-2026-78660`, `CVE-2026-56866`, `CVE-2026-94439`, `CVE-2026-97031` (toutes à 7.5)
+- **Unknown** : `CVE-2026-97032`, `CVE-2026-97030`, `CVE-2026-94448`
+
+Toutes concernent le paquet `golang / stdlib / 1.26.7` et aucune n’est indiquée comme corrigeable dans Docker Hub (`0 Fixable`).
+
+#### Commentaire :
+Les images `ubuntu:latest` (26.04 LTS) et `ubuntu:26.10` partagent ici exactement les mêmes vulnérabilités, car elles embarquent la même version de la bibliothèque Go (`golang/stdlib 1.26.7`). Docker Hub affiche le total, la répartition par sévérité et la liste des CVE pour chaque architecture.
+
+---
+
+### 4.6 Classement des vulnérabilités
+
+#### Commande(s) :
+- Observation de l’onglet **Vulnerabilities** sur Docker Hub
+
+#### Résultat(s) :
+Docker Hub / Docker Scout classe les vulnérabilités :
+- par **sévérité** décroissante : **Critical (C)**, **High (H)**, **Medium (M)**, **Low (L)**, **Unknown (U)** ;
+- avec le **score CVSS** (ex. `9.8`, `9.1`, `7.5`) ;
+- dans un tableau à colonnes : `CVE ID`, `Severity`, `Fixable`, `Present in`, `Affected package(s)`.
+
+Dans le cas observé :
+- `C` = 2, `H` = 8, `M` = 0, `L` = 0, `U` = 3 ;
+- aucune vulnérabilité n’est marquée `Fixable` (`0 Fixable`) ;
+- les vulnérabilités sont triées par gravité, les `Critical` en tête.
+
+#### Commentaire :
+La classification repose donc principalement sur la **sévérité CVSS**, avec un tri décroissant. Des filtres permettent en plus de n’afficher que les vulnérabilités corrigeables ou d’exclure certaines catégories.
+
