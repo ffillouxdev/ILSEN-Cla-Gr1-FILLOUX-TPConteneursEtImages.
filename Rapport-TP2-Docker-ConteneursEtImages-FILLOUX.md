@@ -570,3 +570,57 @@ This message shows that your installation appears to be working correctly.
 #### Commentaire :
 L’image `hello-world` avait été supprimée à la Q3.24. Docker ne la trouve donc pas localement (*Unable to find image*) et la **retélécharge automatiquement** depuis Docker Hub avant de créer puis d’exécuter le conteneur nommé `hello1`. Le digest récupéré est identique à l’ancien ID de l’image : `sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`. C’est le comportement attendu : un `docker run` référence toujours l’image par son nom, et Docker la rapatrie si nécessaire.
 
+---
+
+### 3.26 Identifiant de l’image
+
+#### Commande(s) :
+- `docker images --no-trunc`
+
+#### Résultat(s) :
+```text
+REPOSITORY    TAG       IMAGE ID                                                                  CREATED        SIZE
+hello-world   latest    sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa   6 months ago   25.9kB
+```
+
+#### Commentaire :
+L’identifiant complet de l’image `hello-world:latest` est `sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`. On le retrouve identique à celui observé aux Q3.8, Q3.19 et Q3.25, ce qui confirme que l’ID d’une image est stable tant que son contenu ne change pas. L’option `--no-trunc` évite l’affichage tronqué (par défaut `11a3eb1597e8`).
+
+---
+
+### 3.27 Création d’un conteneur sans le démarrer
+
+#### Commande(s) :
+- `docker create --name hello2 hello-world`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+4df9754d5ba0bd21c1dbfdf690800d049759ee2708ed81105da20c7aeefc5f2c
+CONTAINER ID   IMAGE         COMMAND    CREATED                  STATUS                     PORTS     NAMES
+4df9754d5ba0   hello-world   "/hello"   Less than a second ago   Created                              hello2
+08a04dd7c691   hello-world   "/hello"   6 minutes ago            Exited (0) 6 minutes ago             hello1
+```
+
+#### Commentaire :
+`docker create` crée le conteneur et prépare son système de fichiers, mais ne lance pas son processus principal : le conteneur `hello2` apparaît donc avec le statut `Created`, contrairement à `hello1` qui est déjà passé en `Exited (0)`. On peut ainsi préparer un conteneur à l’avance, puis le démarrer plus tard avec `docker start`.
+
+---
+
+### 3.28 Démarrage de `hello2` par son nom
+
+#### Commande(s) :
+- `docker start hello2`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+hello2
+CONTAINER ID   IMAGE         COMMAND    CREATED          STATUS                      PORTS     NAMES
+4df9754d5ba0   hello-world   "/hello"   3 minutes ago    Up Less than a second                 hello2
+08a04dd7c691   hello-world   "/hello"   10 minutes ago   Exited (0) 10 minutes ago             hello1
+```
+
+#### Commentaire :
+`docker start hello2` démarre le conteneur sans attacher son terminal : la commande n’affiche donc que le nom `hello2`, et non la sortie du programme `/hello`. Juste après, le conteneur apparaît en cours d’exécution (`Up Less than a second`). Comme le programme `hello-world` se termine immédiatement, le statut repasse ensuite en `Exited (0)`. Pour voir directement le message, il faudra utiliser l’option d’attachement (Q3.29).
+
