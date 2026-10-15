@@ -415,3 +415,82 @@ Le conteneur vient d’être créé puis supprimé par son nom aléatoire. `dock
 
 #### Commentaire :
 L’image peut être référencée par son SHA256 complet et un nom de conteneur peut être attribué simultanément avec `--name`. Ce conteneur est également associé à l’image, donc il devra être supprimé avant de pouvoir supprimer l’image sans `--force`.
+
+---
+
+### 3.20 Suppression de l’image sans forcer
+
+#### Commande(s) :
+- `docker rm hello_sha pensive_leakey funny_dubinsky && docker rmi hello-world && docker images`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+hello_sha
+pensive_leakey
+funny_dubinsky
+Untagged: hello-world:latest
+Deleted: sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa
+```
+`docker images` ne liste plus aucune image :
+```text
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+```
+`docker ps -a` ne liste plus aucun conteneur :
+```text
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+
+#### Commentaire :
+Docker refuse de supprimer une image tant qu’un conteneur, même arrêté, la référence encore. Il faut donc d’abord supprimer tous les conteneurs associés (`hello_sha`, `pensive_leakey`, `funny_dubinsky`), puis exécuter `docker rmi hello-world` **sans** l’option `--force`. La sortie `Untagged` retire le tag `hello-world:latest`, puis `Deleted` supprime effectivement l’ID `sha256:11a3eb…848aa`. À la fin, les listes d’images et de conteneurs sont vides.
+
+---
+
+### 3.21 Informations globales sur le système Docker
+
+#### Commande(s) :
+- `docker info`
+- `docker info | grep -E 'Containers|Images'`
+
+#### Résultat(s) :
+Extrait de `docker info` :
+```text
+Server:
+ Containers: 0
+  Running: 0
+  Paused: 0
+  Stopped: 0
+ Images: 0
+ Server Version: 29.9.0
+ Storage Driver: overlayfs
+ Operating System: Ubuntu 22.04.4 LTS
+ Kernel Version: 5.15.0-118-generic
+ CPUs: 2
+ Total Memory: 1.918GiB
+ Name: vmdocker
+ Docker Root Dir: /var/lib/docker
+```
+Résultat filtré :
+```text
+ Containers: 0
+ Images: 0
+```
+
+#### Commentaire :
+`docker info` affiche un état global du moteur Docker : versions client/serveur, pilote de stockage, runtime, noyau, ressources machines, plugins, etc. Les lignes `Containers` et `Images` donnent ici respectivement le nombre de conteneurs et d’images connus localement. Après la Q3.20, plus aucun conteneur ni image n’est stocké, d’où les compteurs à `0`. La variante avec `grep` permet de ne conserver que les deux informations demandées.
+
+---
+
+### 3.22 Affichage des IDs de conteneurs uniquement
+
+#### Commande(s) :
+- `docker ps -aq`
+- Équivalents possibles : `docker ps -q` (conteneurs en cours d’exécution uniquement), `docker container ls -aq`
+
+#### Résultat(s) :
+- `-q` / `--quiet` n’affiche que les identifiants, un par ligne.
+- `-a` / `--all` inclut les conteneurs arrêtés, pas seulement ceux en cours d’exécution.
+- Dans l’état actuel (aucun conteneur stocké), la commande ne retourne donc aucune ligne.
+
+#### Commentaire :
+`docker ps -aq` combine deux options : `-a` liste tous les conteneurs et `-q` ne conserve que leurs IDs. C’est la forme la plus utile pour la suite, car elle permet de récupérer en une seule sortie les identifiants de tous les conteneurs, y compris les conteneurs arrêtés, afin de les transmettre ensuite à `docker rm` (Q3.23).
