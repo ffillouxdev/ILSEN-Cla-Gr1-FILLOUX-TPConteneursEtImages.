@@ -968,3 +968,35 @@ docker.io/library/ubuntu:26.10
 #### Commentaire :
 Le tag `26.10` correspond à **Ubuntu 26.10 « stonking »**, la version la plus récente. Son digest (`sha256:ee126c…fffff`) est différent de celui de `latest`, ce qui confirme qu’il s’agit bien de deux images distinctes.
 
+---
+
+### 4.12 Filtre sur les images `ubuntu`
+
+#### Commande(s) :
+- `docker images --filter=reference='ubuntu*'`
+
+#### Résultat(s) :
+```text
+IMAGE           ID             DISK USAGE   CONTENT SIZE   EXTRA
+ubuntu:26.10    ee126c2fa024        174MB           49MB
+ubuntu:latest   f144425ff09b        162MB         45.6MB
+```
+
+#### Commentaire :
+Le filtre `reference=` ne conserve que les images dont le nom correspond au motif `ubuntu*`. On vérifie ainsi que seules les deux images Ubuntu sont présentes localement.
+
+---
+
+### 4.13 Commande lancée par défaut dans l’image `ubuntu`
+
+#### Commande(s) :
+- `docker inspect ubuntu --format '{{.Config.Cmd}}'`
+
+#### Résultat(s) :
+```text
+[/bin/bash]
+```
+
+#### Commentaire :
+La propriété `Config.Cmd` de l’image définit la commande lancée par défaut lorsqu’on crée un conteneur à partir de l’image `ubuntu`. Ici, il s’agit de **`/bin/bash`**. Comme ce n’est pas un processus en boucle et qu’il attend une entrée standard, un conteneur `ubuntu` lancé sans terminal interactif s’arrête immédiatement.
+
