@@ -9,6 +9,7 @@ Environnement : VM `vmdocker`, utilisateur `dockeruser` (Docker installé via le
 - Partie 2
 - Partie 3
 - Partie 4
+- Partie 5
 
 ## Partie 2 – Installation et démarrage de Docker
 
@@ -999,4 +1000,617 @@ Le filtre `reference=` ne conserve que les images dont le nom correspond au moti
 
 #### Commentaire :
 La propriété `Config.Cmd` de l’image définit la commande lancée par défaut lorsqu’on crée un conteneur à partir de l’image `ubuntu`. Ici, il s’agit de **`/bin/bash`**. Comme ce n’est pas un processus en boucle et qu’il attend une entrée standard, un conteneur `ubuntu` lancé sans terminal interactif s’arrête immédiatement.
+
+---
+
+## Partie 5 – Interagir avec un conteneur
+
+Remarque préliminaire : la combinaison **Ctrl-D** ferme l’entrée standard d’une commande Unix (EOF). Un shell interactif qui la reçoit se termine, et tout processus qui attend des données sur son entrée standard s’arrête lorsque celle-ci est fermée. C’est ce mécanisme qui explique pourquoi un conteneur dont la commande par défaut est un shell (comme `ubuntu`) s’arrête immédiatement s’il est lancé sans terminal interactif.
+
+### 5.1 Lancement, statut, redémarrage et suppression d’un conteneur `ubuntu`
+
+#### Commande(s) :
+- `docker run ubuntu`
+- `docker ps -a`
+- `docker start -ai thirsty_cori`
+- `docker rm 32b867bf56db`
+
+#### Résultat(s) :
+- La création ne produit aucune sortie et le conteneur s’arrête aussitôt : il apparaît **à l’arrêt** (`Exited (0)`) sous le nom `thirsty_cori` (ID `32b867bf56db`).
+- `docker start -ai thirsty_cori` ne rend pas la main dans un shell : le conteneur se termine immédiatement.
+- `docker rm 32b867bf56db` supprime le conteneur.
+
+#### Commentaire :
+`ubuntu` a pour commande par défaut `/bin/bash`. Lancé sans `-i`/`-t`, le shell n’a pas de terminal et son entrée standard est immédiatement fermée (EOF) : il se termine tout de suite, d’où le statut `Exited (0)`. Un conteneur ne reste « en exécution » que si sa commande principale continue de tourner.
+
+---
+
+### 5.2 Conteneur `os_ubuntu` interactif et attaché à un terminal
+
+#### Commande(s) :
+- `docker run -it --name os_ubuntu ubuntu`
+
+#### Résultat(s) :
+```text
+root@01d487cc57e4:/#
+```
+
+#### Commentaire :
+`-i` garde l’entrée standard ouverte et `-t` alloue un pseudo-terminal : on obtient un shell interactif attaché au terminal. Nommer le conteneur (`os_ubuntu`) évite de manipuler son ID.
+
+---
+
+### 5.3 Commande correspondant au processus PID 1
+
+#### Commande(s) :
+- `ps -p 1 -o pid,cmd`
+
+#### Résultat(s) :
+```text
+    PID CMD
+      1 /bin/bash
+```
+
+#### Commentaire :
+Le PID 1 est le processus principal du conteneur : ici `/bin/bash`, hérité du `CMD` de l’image `ubuntu`. C’est lui qui reçoit les signaux ; sa terminaison arrête le conteneur.
+
+---
+
+### 5.4 `whoami`, `pwd`, `ls` et `hostname` dans le conteneur
+
+#### Commande(s) :
+- `whoami`
+- `pwd`
+- `ls`
+- `hostname`
+
+#### Résultat(s) :
+```text
+root
+/
+bin   dev  home  lib64  mnt  proc  run   srv  tmp  var
+boot  etc  lib   media  opt  root  sbin  sys  usr
+01d487cc57e4
+```
+
+#### Commentaire :
+Dans le conteneur, l’utilisateur est `root`, le répertoire courant est `/` et le nom d’hôte est l’ID du conteneur (`01d487cc57e4`). Le conteneur possède donc sa propre racine (système de fichiers Ubuntu) et son propre hostname, distincts de ceux de la VM.
+
+---
+
+### 5.5 Statut observé depuis un second terminal
+
+#### Commande(s) :
+- `docker ps`
+
+#### Résultat(s) :
+- Le conteneur `os_ubuntu` (ID `01d487cc57e4`) est en **`Up`**.
+- Sa commande est **`/bin/bash`**.
+- La colonne **`PORTS`** est vide : **aucun port n’est publié**.
+
+#### Commentaire :
+Depuis un second terminal, `docker ps` affiche le même conteneur : celui-ci est indépendant de la session qui l’a lancé. À part le statut `Up`, on constate qu’il ne publie aucun port sur la VM (pas d’option `-p`) et qu’il exécute simplement un shell.
+
+---
+
+### 5.6 Déplacement dans le répertoire home
+
+#### Commande(s) :
+- `cd ~`
+- `pwd`
+
+#### Résultat(s) :
+```text
+/root
+```
+
+#### Commentaire :
+`~` désigne le répertoire personnel de l’utilisateur courant, soit `/root` pour `root`. Le prompt devient `root@01d487cc57e4:~#`.
+
+---
+
+### 5.7 Sortie avec la commande Unix classique
+
+#### Commande(s) :
+- `exit`
+- `docker ps -a`
+
+#### Résultat(s) :
+- Le conteneur `os_ubuntu` passe en **`Exited (0)`**.
+- Il reste présent dans `docker ps -a`.
+
+#### Commentaire :
+`exit` termine le shell PID 1 ; comme c’est le processus principal, le conteneur s’arrête. Le code retour `0` indique une sortie normale. Le conteneur n’est pas supprimé, seulement arrêté.
+
+---
+
+### 5.8 Redémarrage interactif et répertoire courant
+
+#### Commande(s) :
+- `docker start -ai os_ubuntu`
+
+#### Résultat(s) :
+- Le prompt obtenu est :
+  ```text
+  root@01d487cc57e4:/#
+  ```
+
+#### Commentaire :
+Le répertoire courant est **`/`**, et non `/root`. Le conteneur redémarre un **nouveau** processus bash : le répertoire courant n’est pas conservé d’un shell à l’autre (l’ancien a disparu), il repart du répertoire de travail défini par l’image (`WorkingDir`, vide ici, donc `/`). Le système de fichiers, lui, est bien conservé.
+
+---
+
+### 5.9 Inspection du conteneur et récupération du PID
+
+#### Commande(s) :
+- `docker inspect os_ubuntu`
+
+#### Résultat(s) :
+Extrait du JSON renvoyé :
+```json
+"State": {
+    "Status": "running",
+    "Running": true,
+    "Paused": false,
+    "Restarting": false,
+    "OOMKilled": false,
+    "Dead": false,
+    "Pid": 4222,
+    "ExitCode": 0,
+    ...
+}
+```
+
+#### Commentaire :
+`docker inspect` renvoie l’ensemble des métadonnées du conteneur. `State.Running` vaut `true` (le conteneur tourne) et `State.Pid` donne le **PID du processus principal vu depuis la VM** : ici **4222**.
+
+---
+
+### 5.10 Extraction du PID avec `jq`
+
+#### Commande(s) :
+- `docker inspect os_ubuntu | jq '.[0].State.Pid'`
+
+#### Résultat(s) :
+```text
+4222
+```
+
+#### Commentaire :
+`docker inspect` produit un tableau JSON (`[ {...} ]`). Le filtre `jq` `.[0].State.Pid` extrait directement le PID, sans avoir à lire tout le JSON.
+
+---
+
+### 5.11 Retrouver le processus correspondant sur la VM
+
+#### Commande(s) :
+- `ps -p 4222 -o pid,ppid,cmd`
+
+#### Résultat(s) :
+```text
+    PID    PPID CMD
+   4222    4198 /bin/bash
+```
+
+#### Commentaire :
+Le PID 4222 est bien un processus **visible depuis la VM** : c’est le PID 1 du conteneur (le `/bin/bash`). Son parent (PPID `4198`) est le processus intermédiaire (shim/runc) qui gère le conteneur. La conteneurisation n’est donc pas une machine virtuelle : ce sont des processus ordinaires, isolés par les namespaces et limités par les cgroups.
+
+---
+
+### 5.12 Retour dans le home
+
+#### Commande(s) :
+- `cd ~`
+- `pwd`
+
+#### Résultat(s) :
+```text
+/root
+```
+
+#### Commentaire :
+Le shell (toujours le même processus) revient dans `/root`.
+
+---
+
+### 5.13 Détachement avec Ctrl-p Ctrl-q
+
+#### Commande(s) :
+- `Ctrl-p Ctrl-q`
+- `docker ps`
+
+#### Résultat(s) :
+```text
+CONTAINER ID   IMAGE     COMMAND       CREATED         STATUS         PORTS     NAMES
+01d487cc57e4   ubuntu    "/bin/bash"   5 minutes ago   Up 2 minutes             os_ubuntu
+```
+
+#### Commentaire :
+`Ctrl-p Ctrl-q` **détache** le terminal du conteneur sans l’arrêter : on revient au prompt de la VM et le conteneur reste **`Up`**. C’est la différence avec `exit`, qui termine le shell donc le conteneur.
+
+---
+
+### 5.14 Rattachement et ajout d’un fichier
+
+#### Commande(s) :
+- `docker attach os_ubuntu`
+- `pwd`
+- `echo "test depuis os_ubuntu" > fichier_test.txt`
+- `ls -l`
+- `cat fichier_test.txt`
+
+#### Résultat(s) :
+```text
+root@01d487cc57e4:~# pwd
+/root
+root@01d487cc57e4:/# cd /root
+pwd
+echo "test depuis os_ubuntu" > fichier_test.txt
+ls -l
+cat fichier_test.txt
+/root
+total 4
+-rw-r--r-- 1 root root 22 Oct 15 09:34 fichier_test.txt
+test depuis os_ubuntu
+```
+
+#### Commentaire :
+`docker attach` rebranche le terminal sur le shell existant : on retrouve le même bash et donc le répertoire courant **`/root`**. Le fichier `fichier_test.txt` est créé dans le système de fichiers **du conteneur** (et non de la VM), ce que confirmera `docker diff`.
+
+---
+
+### 5.15 Différences dans le système de fichiers du conteneur
+
+#### Commande(s) :
+- `Ctrl-p Ctrl-q`
+- `docker diff os_ubuntu`
+
+#### Résultat(s) :
+```text
+C /root
+A /root/.bash_history
+A /root/fichier_test.txt
+```
+
+#### Commentaire :
+`docker diff` compare la couche modifiable (au-dessus de l’image) avec l’image d’origine. `A` = fichier ajouté, `C` = modifié. On retrouve le fichier créé (`A /root/fichier_test.txt`) et l’historique du shell (`A /root/.bash_history`), ainsi que le répertoire `/root` modifié (`C`). Les modifications faites dans un conteneur restent donc locales à sa couche d’écriture.
+
+---
+
+### 5.16 Exécuter `hostname` sans foreground
+
+#### Commande(s) :
+- `docker exec -d os_ubuntu hostname`
+- `docker exec os_ubuntu hostname`
+
+#### Résultat(s) :
+- `docker exec -d …` : **aucune sortie** (commande lancée en arrière-plan).
+- `docker exec os_ubuntu hostname` :
+  ```text
+  01d487cc57e4
+  ```
+
+#### Commentaire :
+`docker exec` exécute une commande **dans un conteneur déjà démarré**, sans l’arrêter. L’option `-d` (detached) la lance en arrière-plan ; sans `-d`, on voit sa sortie. Le `hostname` confirme l’ID du conteneur.
+
+---
+
+### 5.17 Exécuter `bash` en interactif et compter les processus
+
+#### Commande(s) :
+- `docker exec -it os_ubuntu bash`
+- `ps -ef | grep bash`
+
+#### Résultat(s) :
+```text
+root           1       0  0 09:34 pts/0    00:00:00 /bin/bash
+root          36       0  0 09:35 pts/1    00:00:00 bash
+root          43      36  0 09:36 pts/1    00:00:00 grep --color=auto bash
+```
+
+#### Commentaire :
+Deux **bash** tournent dans le conteneur : le PID 1 (`/bin/bash`, le shell d’origine) et le PID 36 (`bash`, celui lancé par `docker exec -it`). La troisième ligne est le `grep` lui-même. On peut donc ouvrir plusieurs shells dans un même conteneur avec `exec`.
+
+---
+
+### 5.18 Quitter puis afficher les processus du conteneur
+
+#### Commande(s) :
+- `exit`
+- `docker top os_ubuntu`
+
+#### Résultat(s) :
+```text
+UID                 PID                 PPID                C                   STIME               TTY                 TIME                CMD
+root                4450                4426                0                   09:34               pts/0               00:00:00            /bin/bash
+```
+
+#### Commentaire :
+`exit` quitte le bash du `docker exec` **sans arrêter** le conteneur (le PID 1 continue). `docker top` affiche les processus du conteneur **tels que vus par la VM** ; il ne reste alors que le PID 1 `/bin/bash`.
+
+---
+
+### 5.19 Revenir dans le conteneur et l’arrêter en le quittant
+
+#### Commande(s) :
+- `docker attach os_ubuntu`
+- `exit`
+- `docker ps -a`
+
+#### Résultat(s) :
+- `os_ubuntu` apparaît en **`Exited (0)`**.
+
+#### Commentaire :
+Cette fois, `exit` termine le processus **PID 1** : le conteneur s’arrête (code `0`). Il reste stocké et pourra être relancé.
+
+---
+
+### 5.20 Conteneur `ll` avec la commande `ls -l`
+
+#### Commande(s) :
+- `docker run --name ll ubuntu ls -l`
+
+#### Résultat(s) :
+```text
+total 48
+lrwxrwxrwx   1 root root    7 Apr 20 08:46 bin -> usr/bin
+drwxr-xr-x   2 root root 4096 Apr 20 08:46 boot
+drwxr-xr-x   5 root root  340 Oct 15 09:38 dev
+drwxr-xr-x   1 root root 4096 Oct 15 09:38 etc
+drwxr-xr-x   3 root root 4096 Sep 27 10:25 home
+lrwxrwxrwx   1 root root    7 Apr 20 08:46 lib -> usr/lib
+lrwxrwxrwx   1 root root    9 Apr 20 08:46 lib64 -> usr/lib64
+drwxr-xr-x   2 root root 4096 Sep 27 10:24 media
+drwxr-xr-x   2 root root 4096 Sep 27 10:24 mnt
+drwxr-xr-x   2 root root 4096 Sep 27 10:24 opt
+dr-xr-xr-x 187 root root    0 Oct 15 09:38 proc
+drwx------   2 root root 4096 Sep 27 10:25 root
+drwxr-xr-x   4 root root 4096 Sep 27 10:25 run
+lrwxrwxrwx   1 root root    8 Apr 20 08:46 sbin -> usr/sbin
+drwxr-xr-x   2 root root 4096 Sep 27 10:24 srv
+dr-xr-xr-x  13 root root    0 Oct 15 09:38 sys
+drwxrwxrwt   2 root root 4096 Sep 27 10:25 tmp
+drwxr-xr-x  12 root root 4096 Sep 27 10:24 usr
+drwxr-xr-x  11 root root 4096 Sep 27 10:25 var
+```
+
+#### Commentaire :
+La commande placée après le nom de l’image **remplace** le `CMD` par défaut (`/bin/bash`) : le conteneur exécute `ls -l` puis se termine (`Exited (0)`). Le conteneur est nommé `ll`.
+
+---
+
+### 5.21 Redémarrer `ll` pour le même affichage
+
+#### Commande(s) :
+- `docker start -ai ll`
+
+#### Résultat(s) :
+Le même listing qu’en 5.20 — seuls quelques horodatages de `/dev`, `/proc` et `/sys` changent, car ces pseudo-systèmes de fichiers sont regénérés à chaque démarrage :
+```text
+total 48
+lrwxrwxrwx   1 root root    7 Apr 20 08:46 bin -> usr/bin
+drwxr-xr-x   2 root root 4096 Apr 20 08:46 boot
+drwxr-xr-x   5 root root  340 Oct 15 09:39 dev
+...
+```
+
+#### Commentaire :
+Redémarrer un conteneur **rejoue sa commande** (`ls -l`) et réaffiche donc la même chose. Le conteneur `ll` conserve sa configuration ; il relance simplement son processus.
+
+---
+
+### 5.22 Conteneur `ps` avec `ps aux` et suppression automatique
+
+#### Commande(s) :
+- `docker run --rm --name ps ubuntu ps aux`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+USER         PID %CPU %MEM    VSZ   RSS TTY      STAT START   TIME COMMAND
+root           1 40.0  0.1   6752  3504 ?        Rs   09:39   0:00 ps aux
+```
+`docker ps -a` ne montre **pas** de conteneur `ps` (il ne reste que `ll` et `os_ubuntu`) :
+```text
+CONTAINER ID   IMAGE     COMMAND       CREATED          STATUS                     PORTS     NAMES
+7720d582f5b4   ubuntu    "ls -l"       34 seconds ago   Exited (0) 21 seconds ago             ll
+01d487cc57e4   ubuntu    "/bin/bash"   16 minutes ago   Exited (0) About a minute ago             os_ubuntu
+```
+
+#### Commentaire :
+Dans le conteneur, `ps aux` est bien le processus **PID 1** : c’est la commande principale. Grâce à `--rm`, le conteneur est **automatiquement supprimé** dès qu’il s’arrête : il n’apparaît donc pas dans `docker ps -a`.
+
+---
+
+### 5.23 Conteneur `salut` avec `echo Bonjour`, puis relance
+
+#### Commande(s) :
+- `docker run --name salut ubuntu echo Bonjour`
+- `docker start -ai salut`
+
+#### Résultat(s) :
+```text
+Bonjour
+```
+puis, au redémarrage :
+```text
+Bonjour
+```
+
+#### Commentaire :
+`echo Bonjour` s’exécute une fois, puis le conteneur s’arrête. `docker start -ai salut` **rejoue** la même commande et réaffiche `Bonjour`. Un conteneur arrêté n’est pas supprimé : il peut être relancé autant de fois que voulu.
+
+---
+
+### 5.24 Conteneur à commande infinie, puis suppression
+
+#### Commande(s) :
+- `docker run -d --name boucle ubuntu sh -c "while true ; do sleep 3600 ; done"`
+- `docker ps`
+- `docker rm -f boucle`
+
+#### Résultat(s) :
+```text
+8e94a4e9114f1fd11bd43e10d2001c152e56c88e25f4da3e088fc80dbdbd5600
+```
+```text
+CONTAINER ID   IMAGE     COMMAND                  CREATED         STATUS         PORTS     NAMES
+8e94a4e9114f   ubuntu    "sh -c 'while true ;…"   6 seconds ago   Up 5 seconds             boucle
+```
+```text
+boucle
+```
+
+#### Commentaire :
+La commande `while true ; do sleep 3600 ; done` ne se termine jamais : il faut donc la lancer en **arrière-plan** (`-d`), sinon le terminal resterait bloqué. Comme le conteneur tourne, sa suppression nécessite de **forcer** l’arrêt avec `docker rm -f`.
+
+---
+
+### 5.25 `os_ubuntu` en interactif avec un affichage périodique
+
+#### Commande(s) :
+- `docker start -ai os_ubuntu`
+- `while true; do echo salut; sleep 3; done`
+
+#### Résultat(s) :
+```text
+salut
+salut
+salut
+...
+```
+`salut` s’affiche **toutes les 3 secondes**.
+
+#### Commentaire :
+La boucle tourne dans le shell du conteneur et écrit sur la sortie standard, qui est capturée dans le journal du conteneur (voir 5.28).
+
+---
+
+### 5.26 Rattachement depuis le second terminal et observation
+
+#### Commande(s) :
+- `docker attach os_ubuntu`
+- `Ctrl-C`
+- `ls`
+
+#### Résultat(s) :
+- Le second terminal affiche les mêmes `salut` : les deux terminaux sont **synchronisés** (même TTY).
+- `Ctrl-C` envoie un signal d’interruption au processus au premier plan et **stoppe la boucle** ; le prompt `root@01d487cc57e4:/#` revient dans les deux terminaux.
+- La commande `ls` lancée dans un terminal s’affiche **aussi dans l’autre**.
+
+#### Commentaire :
+`docker attach` branche un second client sur l’entrée/sortie du conteneur : les deux terminaux partagent donc le même terminal (mêmes entrées, mêmes sorties). Cela permet d’interagir depuis l’extérieur avec un conteneur lancé dans un autre terminal.
+
+---
+
+### 5.27 Sortie avec un code retour non nul
+
+#### Commande(s) :
+- `exit 1`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+CONTAINER ID   IMAGE     COMMAND          CREATED          STATUS                     PORTS     NAMES
+463690b0e46d   ubuntu    "echo Bonjour"   2 minutes ago    Exited (0) 2 minutes ago             salut
+7720d582f5b4   ubuntu    "ls -l"          3 minutes ago    Exited (0) 3 minutes ago             ll
+01d487cc57e4   ubuntu    "/bin/bash"      19 minutes ago   Exited (1) 9 seconds ago             os_ubuntu
+```
+
+#### Commentaire :
+`exit 1` termine le shell **PID 1** avec le code de retour `1`. Ce code est **propagé au conteneur**, qui apparaît donc en `Exited (1)` : un code non nul signale une terminaison en erreur.
+
+---
+
+### 5.28 Voir les logs du conteneur
+
+#### Commande(s) :
+- `docker logs os_ubuntu`
+
+#### Résultat(s) :
+Extrait du journal (sortie standard du conteneur) :
+```text
+root@01d487cc57e4:/# ps -p 1 -o pid,cmd
+    PID CMD
+      1 /bin/bash
+root@01d487cc57e4:/# whoami
+...
+root@01d487cc57e4:/# while true; do echo salut; sleep 3; done
+salut
+salut
+salut
+...
+^C
+root@01d487cc57e4:/# exit 1
+```
+
+#### Commentaire :
+`docker logs` affiche la sortie standard et la sortie d’erreur du **PID 1**, conservées après l’arrêt du conteneur. Elles incluent l’écho du terminal (dû à `-t`) et les `salut` de la boucle.
+
+---
+
+### 5.29 Retrouver le fichier de journal
+
+#### Commande(s) :
+- `docker inspect os_ubuntu | jq '.[0].LogPath'`
+- `sudo cat <chemin>`
+
+#### Résultat(s) :
+```text
+"/var/lib/docker/containers/01d487cc57e404c93e0692a14782f5e19282d0fff13d82fc2e029038967c0db0/01d487cc57e404c93e0692a14782f5e19282d0fff13d82fc2e029038967c0db0-json.log"
+```
+Le fichier contient une ligne JSON par évènement :
+```json
+{"log":"\u001b[?2004l\rsalut\r\n","stream":"stdout","time":"2026-10-15T09:40:54.739716396Z"}
+{"log":"salut\r\n","stream":"stdout","time":"2026-10-15T09:40:57.746935657Z"}
+...
+```
+
+#### Commentaire :
+Le champ `LogPath` de `docker inspect` donne le chemin du fichier où Docker stocke les logs du conteneur, au format JSON (une ligne par écriture, avec le flux et l’horodatage). C’est ce fichier que `docker logs` lit et remet en forme.
+
+---
+
+### 5.30 Supprimer tous les conteneurs arrêtés
+
+#### Commande(s) :
+- `docker container prune`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+WARNING! This will remove all stopped containers.
+Are you sure you want to continue? [y/N] y
+Deleted Containers:
+463690b0e46dd585c0475e78a5da43a91ad3c21f7326a0453b0fe98993b05c4a
+7720d582f5b44b5c7395a6dc6f3dcbc9765bb59af6216d52e03034abfa5e5d72
+01d487cc57e404c93e0692a14782f5e19282d0fff13d82fc2e029038967c0db0
+
+Total reclaimed space: 24.58kB
+```
+`docker ps -a` ne liste plus aucun conteneur.
+
+#### Commentaire :
+`docker container prune` supprime **tous** les conteneurs **arrêtés** (avec confirmation), ce qui libère l’espace de leurs couches modifiables. Les conteneurs en cours d’exécution ne sont pas touchés.
+
+---
+
+### 5.31 Clôture : arrêter et supprimer tous les conteneurs actifs en une seule commande
+
+#### Commande(s) :
+- `docker rm -f $(docker ps -aq)`
+
+#### Résultat(s) :
+```text
+docker: 'docker rm' requires at least 1 argument
+
+Usage:  docker rm [OPTIONS] CONTAINER [CONTAINER...]
+
+See 'docker rm --help' for more information
+```
+
+#### Commentaire :
+La substitution `$(docker ps -aq)` renvoie la liste de tous les ID de conteneurs ; ici elle est **vide** (tous avaient déjà été supprimés en 5.30), donc `docker rm -f` n’a plus d’argument. Prise dans le cas général, cette commande unique **arrête (`-f`) puis supprime** tous les conteneurs existants.
+
+---
 
