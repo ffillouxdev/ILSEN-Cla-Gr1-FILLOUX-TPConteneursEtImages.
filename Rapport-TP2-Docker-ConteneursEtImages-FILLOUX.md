@@ -494,3 +494,79 @@ Résultat filtré :
 
 #### Commentaire :
 `docker ps -aq` combine deux options : `-a` liste tous les conteneurs et `-q` ne conserve que leurs IDs. C’est la forme la plus utile pour la suite, car elle permet de récupérer en une seule sortie les identifiants de tous les conteneurs, y compris les conteneurs arrêtés, afin de les transmettre ensuite à `docker rm` (Q3.23).
+
+---
+
+### 3.23 Suppression de tous les conteneurs en une seule commande
+
+#### Commande(s) :
+- `docker run hello-world` (×2, pour recréer des conteneurs de test)
+- `docker ps -a`
+- `docker rm $(docker ps -aq)`
+- `docker ps -a`
+
+#### Résultat(s) :
+Après les deux exécutions, deux conteneurs arrêtés sont présents :
+```text
+CONTAINER ID   IMAGE         COMMAND    CREATED                  STATUS                              PORTS     NAMES
+caaabea6788a   hello-world   "/hello"   Less than a second ago   Exited (0) Less than a second ago             epic_galois
+ed367948e1fc   hello-world   "/hello"   Less than a second ago   Exited (0) Less than a second ago             blissful_ramanujan
+```
+`docker rm $(docker ps -aq)` supprime les deux conteneurs et affiche leurs IDs :
+```text
+caaabea6788a
+ed367948e1fc
+```
+Le `docker ps -a` final ne liste plus aucun conteneur :
+```text
+CONTAINER ID   IMAGE     COMMAND   CREATED   STATUS    PORTS     NAMES
+```
+
+#### Commentaire :
+`$(docker ps -aq)` est une substitution de commande bash : Docker fournit d’abord la liste des identifiants de tous les conteneurs (`-a` pour inclure les conteneurs arrêtés, `-q` pour n’afficher que les IDs), puis `docker rm` récupère cette liste comme arguments et les supprime en une seule commande. Sans conteneur existant, la substitution est vide et `docker rm` renvoie l’erreur *« requires at least 1 argument »* ; des conteneurs de test ont donc été recréés ici pour démontrer la commande.  
+
+---
+
+### 3.24 Suppression de l’image après recréation des conteneurs
+
+#### Commande(s) :
+- `docker rmi hello-world`
+- `docker images`
+
+#### Résultat(s) :
+```text
+Untagged: hello-world:latest
+Deleted: sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa
+```
+`docker images` ne liste plus aucune image :
+```text
+IMAGE   ID             DISK USAGE   CONTENT SIZE   EXTRA
+```
+
+#### Commentaire :
+L’image avait été retéléchargée automatiquement lors des `docker run` de la Q3.23. Une fois les conteneurs supprimés, `docker rmi hello-world` peut de nouveau retirer le tag (`Untagged`) puis supprimer l’image (`Deleted`) **sans** l’option `--force`. Le second `docker images` confirme qu’il ne reste plus aucune image locale.
+
+---
+
+### 3.25 Nouvelle exécution après suppression de l’image
+
+#### Commande(s) :
+- `docker run --name hello1 hello-world`
+
+#### Résultat(s) :
+```text
+Unable to find image 'hello-world:latest' locally
+latest: Pulling from library/hello-world
+4f55086f7dd0: Pull complete
+d5e71e642bf5: Download complete
+Digest: sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa
+Status: Downloaded newer image for hello-world:latest
+
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...
+```
+
+#### Commentaire :
+L’image `hello-world` avait été supprimée à la Q3.24. Docker ne la trouve donc pas localement (*Unable to find image*) et la **retélécharge automatiquement** depuis Docker Hub avant de créer puis d’exécuter le conteneur nommé `hello1`. Le digest récupéré est identique à l’ancien ID de l’image : `sha256:11a3eb1597e864c51b3f56733cb2e8a90bf0c284bfc05f9444d81c558bc848aa`. C’est le comportement attendu : un `docker run` référence toujours l’image par son nom, et Docker la rapatrie si nécessaire.
+
