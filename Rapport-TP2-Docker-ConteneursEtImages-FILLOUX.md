@@ -678,3 +678,28 @@ f435cc31db33   hello-world   "/hello"   Less than a second ago   Up Less than a 
 #### Commentaire :
 L’option `-d` (`--detach`) exécute le conteneur en arrière-plan : la sortie standard du programme n’est pas attachée au terminal, et `docker run` n’affiche donc que l’ID du conteneur créé. `docker ps -a` montre ensuite `hello3`, d’abord en cours d’exécution (`Up Less than a second`) puis, très rapidement, en `Exited (0)` puisque le programme `/hello` se termine immédiatement.
 
+---
+
+### 3.32 Exécution avec suppression automatique (`--rm`)
+
+#### Commande(s) :
+- `docker run --rm --name hello4 hello-world`
+- `docker ps -a`
+
+#### Résultat(s) :
+```text
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+...
+```
+`docker ps -a` ne montre plus que les conteneurs précédents (`hello3`, `hello2`, `hello1`) et **aucune trace de `hello4`** :
+```text
+CONTAINER ID   IMAGE         COMMAND    CREATED          STATUS                      PORTS     NAMES
+f435cc31db33   hello-world   "/hello"   36 seconds ago   Exited (0) 35 seconds ago             hello3
+4df9754d5ba0   hello-world   "/hello"   8 minutes ago    Exited (0) 3 minutes ago              hello2
+08a04dd7c691   hello-world   "/hello"   14 minutes ago   Exited (0) 2 minutes ago              hello1
+```
+
+#### Commentaire :
+L’option `--rm` demande à Docker de supprimer automatiquement le conteneur dès qu’il s’arrête. Le conteneur `hello4` exécute donc bien le programme `hello-world`, mais il disparaît aussitôt après : il n’apparaît pas dans `docker ps -a`, contrairement aux conteneurs `hello1`, `hello2` et `hello3` conservés. C’est la façon de faire pour un conteneur « jetable », dont on ne veut garder aucune trace locale.
+
